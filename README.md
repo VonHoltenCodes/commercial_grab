@@ -59,6 +59,11 @@ Clips land in `recording.grab/clips/` named `break03_spot02_1.02.45.mkv`.
   (default 130 s covers 15/30/60/120 s spots with slop).
 - `cut --pad 0.25` — pad clips if stream-copy keyframe snapping clips too tight.
 
+Note on stream copy: `-c copy` cuts snap backward to the nearest keyframe, so a
+clip can start a few seconds *early* (carrying the previous spot's tail) but
+never late — no commercial content is ever lost. Use `--precise` when you need
+frame-exact boundaries.
+
 ## Provenance
 
 Built on devbase1 for the VonHolten fleet's broadcast archiving projects
