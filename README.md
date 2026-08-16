@@ -69,6 +69,11 @@ python3 -m commercial_grab dedupe    a.grab b.grab c.grab      # cross-recording
 
 Clips land in `recording.grab/clips/` named `break03_spot02_1.02.45.mkv`.
 
+The same reviewed `segments.json` also drives
+[commercial_cut](https://github.com/VonHoltenCodes/commercial_cut), the
+companion tool that joins the show blocks into a clean, commercial-free
+program file — one review pass, two products.
+
 ### doctor — check recovered sources first
 
 ddrescue'd DVD/VHS captures carry container pathologies that break everything
