@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.grab/
+work/
+*.mkv
+*.mp4
+*.iso
+.env
