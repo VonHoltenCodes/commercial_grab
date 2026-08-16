@@ -41,15 +41,50 @@ Requires an NVIDIA GPU + CUDA for transcription (`--device cpu` works, slowly).
 ## Use
 
 ```sh
+python3 -m commercial_grab doctor     recording.mkv   # ALWAYS run first on recovered sources
 python3 -m commercial_grab scan       recording.mkv
 python3 -m commercial_grab transcribe recording.mkv
 python3 -m commercial_grab propose    recording.mkv
 # review recording.grab/breaks.md, edit recording.grab/segments.json if needed
 python3 -m commercial_grab cut        recording.mkv            # commercials only
 python3 -m commercial_grab cut       recording.mkv --only all  # everything
+python3 -m commercial_grab dedupe    a.grab b.grab c.grab      # cross-recording repeats
 ```
 
 Clips land in `recording.grab/clips/` named `break03_spot02_1.02.45.mkv`.
+
+### doctor — check recovered sources first
+
+ddrescue'd DVD/VHS captures carry container pathologies that break everything
+downstream: a stray corrupt-PTS packet can inflate a 1.7-hour recording to a
+"26-hour" container, and remuxes of non-monotonic-DTS streams get one Matroska
+cluster per frame — encoding clips from such a file makes ffmpeg balloon to
+20+ GB and get OOM-killed (it can freeze the whole machine). `doctor` detects
+both and prints the exact fix (`-t <end> -c copy` trim / `mkvmerge` rebuild —
+both lossless and fast).
+
+### dedupe — one clip per commercial
+
+Repeat airings of the same spot produce near-identical transcripts. `dedupe`
+compares every commercial segment across the given workdirs (SequenceMatcher
+on normalized transcript text, 0.80 threshold) and writes `dedupe_report.md`
+grouping the repeats. Review the report — montage ads with sparse speech can
+false-positive against bumpers, and different edits of the same campaign are
+NOT duplicates — then mark redundant segments `"label": "duplicate"` in
+`segments.json`; `cut` skips them and spot numbering keeps its gaps, so clip
+names stay position-accurate to the broadcast.
+
+### The review step
+
+`propose`'s labels are heuristics — the intended workflow is that an agent
+(or a patient human) reviews `breaks.md` against the transcript, pulls frames
+at suspicious boundaries (`ffmpeg -ss T -frames:v 1`), and hand-edits
+`segments.json` before cutting. Things the heuristics get wrong every time:
+movie title sequences chop into fake "spots" (black between title cards);
+back-to-back ads with no black between them stay glued (split via word-gap
+timestamps + `select='gt(scene,0.12)'` scene detection); silent montage ads
+fragment into 2-second shards (merge them). VHS-noisy audio may need
+`scan --silence-db -25`; black-only candidates still segment fine.
 
 ### Tuning
 
@@ -66,5 +101,4 @@ frame-exact boundaries.
 
 ## Provenance
 
-Built on devbase1 for the VonHolten fleet's broadcast archiving projects
-(FX Batman '66 airings, HAVA captures, U-verse DVR recoveries).
+Built on devbase1 for the VonHolten fleet's broadcast archiving projects.

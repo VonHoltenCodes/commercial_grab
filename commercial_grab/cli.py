@@ -149,6 +149,21 @@ def dedupe(workdirs, threshold):
                f"{ndup} redundant clips. Report: {out}")
 
 
+@cli.command()
+@click.argument("video", type=click.Path(exists=True, path_type=Path))
+def doctor(video):
+    """Check VIDEO for recovered-source container pathologies before processing."""
+    from .doctor import diagnose
+    click.echo(f"Checking {video.name} …")
+    problems = diagnose(video)
+    if not problems:
+        click.echo("OK — no container pathologies detected.")
+    else:
+        for p in problems:
+            click.echo(f"⚠ {p}")
+        sys.exit(1)
+
+
 def main():
     cli()
 
