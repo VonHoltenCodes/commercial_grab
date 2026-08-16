@@ -133,6 +133,22 @@ def cut(video, workdir, only, precise, pad):
     click.echo(f"Wrote {len(written)} clips to {out_dir} in {time.time()-t0:.0f}s.")
 
 
+@cli.command()
+@click.argument("workdirs", nargs=-1, required=True,
+                type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.option("--threshold", default=0.80, show_default=True)
+def dedupe(workdirs, threshold):
+    """Find near-identical commercial transcripts across .grab WORKDIRS."""
+    from . import dedupe as dd
+    items = dd.gather(list(workdirs))
+    groups = dd.find_groups(items, threshold)
+    out = Path(workdirs[0]) / "dedupe_report.md"
+    out.write_text(dd.report(items, groups))
+    ndup = sum(len(g) - 1 for g in groups)
+    click.echo(f"{len(items)} commercials compared — {len(groups)} duplicate groups, "
+               f"{ndup} redundant clips. Report: {out}")
+
+
 def main():
     cli()
 
