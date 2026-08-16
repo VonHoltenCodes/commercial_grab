@@ -11,11 +11,20 @@ comes from. Everything below was learned on real recovered broadcasts.
 python3 -m commercial_grab doctor     RECORDING   # ALWAYS first
 python3 -m commercial_grab scan       RECORDING
 python3 -m commercial_grab transcribe RECORDING   # GPU; run concurrently with scan
+python3 -m commercial_grab captions   RECORDING   # Line 21 CC — run it; it's cheap
 python3 -m commercial_grab propose    RECORDING
 # >>> YOUR REVIEW PASS (below) <<<
 python3 -m commercial_grab cut        RECORDING --precise
 python3 -m commercial_grab dedupe     A.grab B.grab …
 ```
+
+Always try `captions` before reviewing: recordings that passed through a DVD
+recorder usually kept their EIA-608 captions, and even h264 re-encodes can
+carry them (A53). CC text is verbatim — trust it over ASR for brand names
+and product identification ("Heilig-Meyers", not "Highly Myers"). Trust ASR
+word timestamps over CC cue timing for boundary work: captions lag or lead
+the audio by seconds. When both exist, `propose` prints `ASR:` and `CC:`
+lines per block.
 
 `scan` (ffmpeg decode) and `transcribe` (GPU compute) can run in parallel.
 All stage outputs land in `<video>.grab/` and are resumable.

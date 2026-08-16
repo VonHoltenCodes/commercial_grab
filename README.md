@@ -20,6 +20,12 @@ archival work: no re-encoding by default, no cloud transcription.
    silence are high-confidence cut points.
 3. **`transcribe`** — faster-whisper on the local GPU produces a word-timestamped
    transcript (`transcript.json` / `transcript.md`).
+3b. **`captions`** — extracts embedded Line 21 closed captions (EIA-608) when
+   the capture chain preserved them (DVD-recorder MPEG-2 usually did; h264
+   re-encodes sometimes carry them as A53). CC is the broadcaster's verbatim
+   text — authoritative for brand names — while its cue-level timing is too
+   coarse for cutting; use both, and `propose` will show ASR and CC excerpts
+   side by side in `breaks.md`.
 4. **`propose`** — cut points split the timeline into blocks. Blocks short enough
    to be a single spot (≤130 s by default) are labeled `commercial` and grouped
    into numbered breaks; longer blocks are `show`. Output: `segments.json` (the

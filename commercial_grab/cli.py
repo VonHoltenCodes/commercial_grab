@@ -77,6 +77,24 @@ def transcribe(video, workdir, model, device, compute_type, language):
 
 @cli.command()
 @click.argument("video", type=click.Path(exists=True, path_type=Path))
+@click.option("--workdir", default=None, help="Working dir (default: <video>.grab/)")
+def captions(video, workdir):
+    """Extract embedded Line 21 closed captions (EIA-608) from VIDEO."""
+    from . import captions as cap
+    wd = workdir_for(video, workdir)
+    t0 = time.time()
+    click.echo(f"Extracting closed captions from {video.name} …")
+    cues = cap.extract(video)
+    (wd / "captions.json").write_text(json.dumps(cues, indent=2))
+    (wd / "captions.md").write_text(cap.captions_markdown(cues))
+    click.echo(f"Done in {time.time()-t0:.0f}s — {len(cues)} caption cues, "
+               f"saved captions.json + captions.md"
+               if cues else
+               f"Done in {time.time()-t0:.0f}s — no captions found in this recording.")
+
+
+@cli.command()
+@click.argument("video", type=click.Path(exists=True, path_type=Path))
 @click.option("--workdir", default=None)
 @click.option("--max-spot", default=130.0, show_default=True,
               help="Blocks at or below this length (s) are labeled commercial")
@@ -95,13 +113,17 @@ def propose(video, workdir, max_spot, merge_gap):
     tpath = wd / "transcript.json"
     if tpath.exists():
         transcript = transcribe_mod.load(tpath)
+    cues = None
+    cpath = wd / "captions.json"
+    if cpath.exists():
+        cues = json.loads(cpath.read_text())
 
     duration = float(ffdetect.probe(video)["format"]["duration"])
     segments = propose_mod.build_segments(candidates, duration, max_spot=max_spot,
                                           merge_gap=merge_gap)
     propose_mod.save_segments(segments, wd / "segments.json")
     (wd / "breaks.md").write_text(
-        propose_mod.review_markdown(segments, transcript, video.name)
+        propose_mod.review_markdown(segments, transcript, video.name, cues)
     )
     n_comm = sum(1 for s in segments if s["label"] == "commercial")
     n_breaks = max((s.get("break", 0) for s in segments), default=0)

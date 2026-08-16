@@ -57,7 +57,8 @@ def build_segments(
     return segments
 
 
-def review_markdown(segments: list[dict], transcript: dict | None, video_name: str) -> str:
+def review_markdown(segments: list[dict], transcript: dict | None, video_name: str,
+                    captions: list[dict] | None = None) -> str:
     lines = [
         f"# Proposed segments — {video_name}",
         "",
@@ -80,7 +81,11 @@ def review_markdown(segments: list[dict], transcript: dict | None, video_name: s
         )
         if transcript:
             excerpt = text_between(transcript, seg["start"], seg["end"], max_chars=400)
-            lines.append(f"> {excerpt or '(no speech detected)'}")
+            lines.append(f"> ASR: {excerpt or '(no speech detected)'}")
+        if captions is not None:
+            from .captions import text_between as cc_between
+            cc = cc_between(captions, seg["start"], seg["end"], max_chars=400)
+            lines.append(f"> CC: {cc or '(no captions)'}")
         lines.append("")
     return "\n".join(lines)
 
