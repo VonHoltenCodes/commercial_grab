@@ -12,18 +12,24 @@ The design borrows the transcript-first architecture of
 [browser-use/video-use](https://github.com/browser-use/video-use), rebuilt for
 archival work: no re-encoding by default, no cloud transcription.
 
-1. **`scan`** — one ffmpeg pass runs `blackdetect` + `silencedetect`. Broadcasts
+1. **`doctor`** — pre-flight container checks. Recovered sources (ddrescue'd
+   DVDs, aging tapes) carry pathologies that break every later stage; run this
+   first, every time.
+2. **`scan`** — one ffmpeg pass runs `blackdetect` + `silencedetect`. Broadcasts
    cut to black between program and spots; black intervals that coincide with
    silence are high-confidence cut points.
-2. **`transcribe`** — faster-whisper on the local GPU produces a word-timestamped
+3. **`transcribe`** — faster-whisper on the local GPU produces a word-timestamped
    transcript (`transcript.json` / `transcript.md`).
-3. **`propose`** — cut points split the timeline into blocks. Blocks short enough
+4. **`propose`** — cut points split the timeline into blocks. Blocks short enough
    to be a single spot (≤130 s by default) are labeled `commercial` and grouped
    into numbered breaks; longer blocks are `show`. Output: `segments.json` (the
    edit list) plus `breaks.md`, a review sheet with a transcript excerpt per
-   block so a human — or an agent like Claude Code — can fix labels before cutting.
-4. **`cut`** — extracts clips per `segments.json`. Default is `-c copy`
+   block so a human — or an agent like Claude Code — can fix labels before
+   cutting (see `CLAUDE.md` for the full agent review playbook).
+5. **`cut`** — extracts clips per `segments.json`. Default is `-c copy`
    (lossless, keyframe-snapped); `--precise` re-encodes for frame-exact bounds.
+6. **`dedupe`** — compares transcripts across recordings so repeat airings of
+   the same spot yield one archived clip.
 
 All stage outputs land in `<video>.grab/` next to the source, so every stage is
 resumable and re-runnable independently.
@@ -98,6 +104,19 @@ Note on stream copy: `-c copy` cuts snap backward to the nearest keyframe, so a
 clip can start a few seconds *early* (carrying the previous spot's tail) but
 never late — no commercial content is ever lost. Use `--precise` when you need
 frame-exact boundaries.
+
+## Working with an AI agent
+
+The review step was designed to be driven by a coding agent (Claude Code or
+similar): the agent reads `breaks.md`, pulls frames at suspicious boundaries,
+consults word timestamps, and edits `segments.json` before cutting. `CLAUDE.md`
+in this repo is a ready-made playbook an agent can follow end to end —
+including the boundary-verification techniques and every failure mode we've
+hit on real recordings.
+
+## License
+
+GPL-3.0 — see [LICENSE](LICENSE).
 
 ## Provenance
 
