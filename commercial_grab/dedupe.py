@@ -76,22 +76,63 @@ def find_groups(items: list[dict], threshold: float = SIM_THRESHOLD) -> list[lis
     groups: dict[int, list[int]] = {}
     for i in comparable:
         groups.setdefault(find(i), []).append(i)
-    return [sorted(g, key=lambda i: -items[i]["words"]) for g in groups.values() if len(g) > 1]
+    return [sorted(g, key=lambda i: (not items[i].get("archive"), -items[i]["words"]))
+            for g in groups.values() if len(g) > 1]
+
+
+def _label(it: dict) -> str:
+    if it.get("archive"):
+        return f"archive {it['path']}"
+    return f"{it['recording']} break{it['break']:02d}/spot{it['spot']:02d}"
 
 
 def report(items: list[dict], groups: list[list[int]]) -> str:
     lines = ["# Duplicate report", ""]
     if not groups:
         lines.append("No duplicates found.")
-    for n, g in enumerate(groups, 1):
+    archive_only = [g for g in groups if all(items[i].get("archive") for i in g)]
+    live = [g for g in groups if g not in archive_only]
+    for n, g in enumerate(live, 1):
         keeper = items[g[0]]
-        lines.append(f"## Group {n} — keep `{keeper['recording']}` b{keeper['break']:02d}s{keeper['spot']:02d}")
+        lines.append(f"## Group {n} — keep `{_label(keeper)}`")
         for i in g:
             it = items[i]
             tag = "KEEP" if i == g[0] else "DUP "
-            lines.append(
-                f"- {tag} {it['recording']} break{it['break']:02d}/spot{it['spot']:02d} "
-                f"({it['duration']:.0f}s): {it['text'][:110]}…"
-            )
+            lines.append(f"- {tag} {_label(it)} ({it['duration']:.0f}s): {it['text'][:110]}…")
         lines.append("")
+    if archive_only:
+        lines += ["# Already-filed duplicates (archive vs archive — audit, not new work)", ""]
+        for g in archive_only:
+            for i in g:
+                lines.append(f"- {_label(items[i])} ({items[i]['duration']:.0f}s)")
+            lines.append("")
     return "\n".join(lines)
+
+
+def apply_labels(items: list[dict], groups: list[list[int]]) -> dict[str, int]:
+    """Mark every non-keeper new-recording segment `duplicate` in its segments.json."""
+    from .propose import load_segments, save_segments
+
+    changed: dict[str, int] = {}
+    per_wd: dict[str, dict[tuple, str]] = {}
+    for g in groups:
+        keeper = items[g[0]]
+        for i in g[1:]:
+            it = items[i]
+            if it.get("archive"):
+                continue
+            per_wd.setdefault(it["workdir"], {})[(it["break"], it["spot"])] = _label(keeper)
+    for wd, marks in per_wd.items():
+        path = Path(wd) / "segments.json"
+        segs = load_segments(path)
+        n = 0
+        for s in segs:
+            key = (s.get("break"), s.get("spot"))
+            if key in marks and s.get("label") == "commercial":
+                s["label"] = "duplicate"
+                s["dup_of"] = marks[key]
+                n += 1
+        if n:
+            save_segments(segs, path)
+        changed[wd] = n
+    return changed

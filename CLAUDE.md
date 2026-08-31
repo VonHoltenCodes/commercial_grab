@@ -15,7 +15,8 @@ python3 -m commercial_grab captions   RECORDING   # Line 21 CC — run it; it's 
 python3 -m commercial_grab propose    RECORDING
 # >>> YOUR REVIEW PASS (below) <<<
 python3 -m commercial_grab cut        RECORDING --precise
-python3 -m commercial_grab dedupe     A.grab B.grab …
+python3 -m commercial_grab dedupe     RECORDING.grab --archive ~/Videos/commercials --apply
+python3 -m commercial_grab index      ~/Videos/commercials   # after filing clips — keeps the archive memory current
 ```
 
 Always try `captions` before reviewing: recordings that passed through a DVD
@@ -87,8 +88,11 @@ script) and run `cut`.
 
 ## Dedupe policy
 
-One archived clip per unique commercial. After cutting, run `dedupe` across
-all related workdirs and review `dedupe_report.md` before acting:
+One archived clip per unique commercial — **across the entire archive, not
+just the tape in hand** (user directive 2026-08-30). Before cutting, run
+`dedupe WORKDIR --archive ~/Videos/commercials` (the index must exist; run
+`index` if `.archive_index.json` is missing or the archive has grown) and
+review `dedupe_report.md` before `--apply`:
 
 - **Keep the first airing** unless a later one is more complete (e.g. the
   first is missing its opening seconds).
@@ -102,6 +106,11 @@ all related workdirs and review `dedupe_report.md` before acting:
 - Near-misses land just under the 0.80 threshold when whisper hears the same
   ad slightly differently; if the report shows a suspicious singleton you
   remember seeing twice, compare its transcript manually.
+- Archive members always win a group (they're already published). A new
+  segment matching an archived clip is dropped, never the archived clip.
+- **After filing a batch into brand folders, run `index` again** so the next
+  tape is compared against it. The index is the archive's memory; a stale
+  index is how duplicates reach the channel.
 
 ## Dating the broadcast
 

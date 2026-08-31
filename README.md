@@ -38,8 +38,10 @@ archival work: no re-encoding by default, no cloud transcription.
    cutting (see `CLAUDE.md` for the full agent review playbook).
 5. **`cut`** — extracts clips per `segments.json`. Default is `-c copy`
    (lossless, keyframe-snapped); `--precise` re-encodes for frame-exact bounds.
-6. **`dedupe`** — compares transcripts across recordings so repeat airings of
-   the same spot yield one archived clip.
+6. **`dedupe`** — compares transcripts across recordings — and, with
+   `--archive`, against everything already filed — so repeat airings of the
+   same spot yield one archived clip. **`index`** builds that archive-wide
+   transcript index.
 
 All stage outputs land in `<video>.grab/` next to the source, so every stage is
 resumable and re-runnable independently.
@@ -64,7 +66,8 @@ python3 -m commercial_grab propose    recording.mkv
 # review recording.grab/breaks.md, edit recording.grab/segments.json if needed
 python3 -m commercial_grab cut        recording.mkv            # commercials only
 python3 -m commercial_grab cut       recording.mkv --only all  # everything
-python3 -m commercial_grab dedupe    a.grab b.grab c.grab      # cross-recording repeats
+python3 -m commercial_grab index     ~/Videos/commercials      # archive transcript index (incremental)
+python3 -m commercial_grab dedupe    recording.grab --archive ~/Videos/commercials --apply
 ```
 
 Clips land in `recording.grab/clips/` named `break03_spot02_1.02.45.mkv`.
@@ -93,7 +96,21 @@ grouping the repeats. Review the report — montage ads with sparse speech can
 false-positive against bumpers, and different edits of the same campaign are
 NOT duplicates — then mark redundant segments `"label": "duplicate"` in
 `segments.json`; `cut` skips them and spot numbering keeps its gaps, so clip
-names stay position-accurate to the broadcast.
+names stay position-accurate to the broadcast. `--apply` does that labeling
+for you (adds `"dup_of"` naming the keeper) — still read the report first.
+
+### index — archive-wide memory
+
+Dedupe within one tape isn't enough once the archive spans many recordings
+from the same era: the ads that ran on Thanksgiving Eve ran again the next
+Saturday. `index ARCHIVE_ROOT` transcribes every filed clip under the brand
+folders (skipping `_*` staging dirs) into `ARCHIVE_ROOT/.archive_index.json`,
+keyed by relative path and refreshed only for new/changed files — the first
+run costs one GPU pass over the archive (~2–3 s per clip), later runs cost
+seconds. `dedupe --archive ARCHIVE_ROOT` then treats every indexed clip as an
+already-kept member: a new segment that matches one is labeled a duplicate
+of that archived file. Archive-vs-archive matches are reported in a separate
+audit section (they're already on the channel — decide separately).
 
 ### The review step
 

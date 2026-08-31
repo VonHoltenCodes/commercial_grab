@@ -159,16 +159,41 @@ def cut(video, workdir, only, precise, pad):
 @click.argument("workdirs", nargs=-1, required=True,
                 type=click.Path(exists=True, file_okay=False, path_type=Path))
 @click.option("--threshold", default=0.80, show_default=True)
-def dedupe(workdirs, threshold):
-    """Find near-identical commercial transcripts across .grab WORKDIRS."""
+@click.option("--archive", default=None, type=click.Path(exists=True, file_okay=False, path_type=Path),
+              help="Filed-archive root; also compares against its .archive_index.json (see `index`)")
+@click.option("--apply", is_flag=True, help="Label redundant new segments 'duplicate' in segments.json")
+def dedupe(workdirs, threshold, archive, apply):
+    """Find near-identical commercial transcripts across .grab WORKDIRS (and the archive)."""
     from . import dedupe as dd
     items = dd.gather(list(workdirs))
+    n_new = len(items)
+    if archive:
+        from .archive import archive_items, index_path
+        if not index_path(archive).exists():
+            raise click.ClickException(f"No index at {index_path(archive)} — run `index {archive}` first")
+        items += archive_items(archive)
     groups = dd.find_groups(items, threshold)
     out = Path(workdirs[0]) / "dedupe_report.md"
     out.write_text(dd.report(items, groups))
-    ndup = sum(len(g) - 1 for g in groups)
-    click.echo(f"{len(items)} commercials compared — {len(groups)} duplicate groups, "
-               f"{ndup} redundant clips. Report: {out}")
+    live = [g for g in groups if not all(items[i].get("archive") for i in g)]
+    ndup = sum(1 for g in live for i in g[1:] if not items[i].get("archive"))
+    click.echo(f"{n_new} new commercials vs {len(items) - n_new} archived — "
+               f"{len(live)} duplicate groups, {ndup} redundant new clips. Report: {out}")
+    if apply and ndup:
+        for wd, n in dd.apply_labels(items, groups).items():
+            click.echo(f"  labeled {n} segments duplicate in {wd}/segments.json")
+
+
+@cli.command()
+@click.argument("archive", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.option("--model", default="large-v3", show_default=True)
+@click.option("--device", default="cuda", show_default=True)
+@click.option("--compute-type", default="float16", show_default=True)
+def index(archive, model, device, compute_type):
+    """Transcribe filed ARCHIVE clips into .archive_index.json (incremental)."""
+    from .archive import build_index
+    idx = build_index(archive, model, device, compute_type, progress=click.echo)
+    click.echo(f"{len(idx['clips'])} clips indexed at {archive}/.archive_index.json")
 
 
 @cli.command()
