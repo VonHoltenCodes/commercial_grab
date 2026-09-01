@@ -112,6 +112,16 @@ review `dedupe_report.md` before `--apply`:
   tape is compared against it. The index is the archive's memory; a stale
   index is how duplicates reach the channel.
 
+## Identifying the brand
+
+The transcript often never says the brand (gag ads, music ads, ads that
+name it only on the closing card). **Before naming a clip, pull its last
+1–2 s of frames and read the end card** — that's the authoritative brand.
+Never identify a spot from a lookalike or a "sounds like" (a man in
+glasses is not automatically Ray Szmanda; a 1996 Marshall Field's
+After-Thanksgiving ad shipped mistitled as Menards that way, 2026-09-01).
+Captions help too: a CC cue with the brand name beats ASR.
+
 ## Dating the broadcast
 
 The ads date the tape better than any label. Look for: theatrical trailers
