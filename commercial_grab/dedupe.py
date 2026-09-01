@@ -76,8 +76,14 @@ def find_groups(items: list[dict], threshold: float = SIM_THRESHOLD) -> list[lis
     groups: dict[int, list[int]] = {}
     for i in comparable:
         groups.setdefault(find(i), []).append(i)
-    return [sorted(g, key=lambda i: (not items[i].get("archive"), -items[i]["words"]))
-            for g in groups.values() if len(g) > 1]
+    def order(g):
+        # keeper: archive members first (already published); otherwise the
+        # FIRST airing, unless a later one is clearly more complete (>10% more words)
+        top = max(items[i]["words"] for i in g)
+        return sorted(g, key=lambda i: (not items[i].get("archive"),
+                                        items[i]["words"] < 0.9 * top,
+                                        items[i]["start"]))
+    return [order(g) for g in groups.values() if len(g) > 1]
 
 
 def _label(it: dict) -> str:
