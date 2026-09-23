@@ -86,6 +86,20 @@ Then edit `segments.json` directly (start/end/label per block; `duration`,
 `break`, `spot` get recomputed — keep the recompute snippet from your edit
 script) and run `cut`.
 
+## Join rules (user directive 2026-09-22)
+
+- **Cutdowns of the SAME spot join into one clip.** If two airings are the same
+  commercial — identical script/footage — at different lengths (a 30s master
+  chopped into 15s cuts, a tag-only version), they are cuts of one ad: join
+  them (or keep the longest and mark the cutdowns duplicates of it). This is
+  NOT the different-edits rule: ads with different stories/vignettes for the
+  same brand stay separate clips, even at the same length.
+- **Filler bumpers under ~10 s join into one per-tape compilation clip** for
+  upload (station IDs, sponsor tags, "salutes" cards). Archive masters stay
+  individual; concat the cut clips (-c copy, same encode params) into one
+  `joined_*.mkv` with a "Bumpers & Billboards" title. Named-show promos with
+  real content stay individual even when short.
+
 ## Dedupe policy
 
 One archived clip per unique commercial — **across the entire archive, not
