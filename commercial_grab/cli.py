@@ -185,6 +185,22 @@ def dedupe(workdirs, threshold, archive, apply):
 
 
 @cli.command()
+@click.argument("video", type=click.Path(exists=True, path_type=Path))
+@click.option("--workdir", default=None)
+@click.option("--window", default=1.6, show_default=True, help="Search window (s) around each boundary")
+def refit(video, workdir, window):
+    """Snap reviewed ad boundaries to the nearest black/scene cut. Run before `cut`."""
+    import json as _json
+    from .refit import refit as do_refit
+    wd = workdir_for(video, workdir)
+    seg_path = wd / "segments.json"
+    segments = _json.loads(seg_path.read_text())
+    moved = do_refit(video, segments, window=window, progress=click.echo)
+    seg_path.write_text(_json.dumps(segments, indent=1))
+    click.echo(f"Moved {moved} boundaries.")
+
+
+@cli.command()
 @click.argument("archive", type=click.Path(exists=True, file_okay=False, path_type=Path))
 @click.option("--model", default="large-v3", show_default=True)
 @click.option("--device", default="cuda", show_default=True)

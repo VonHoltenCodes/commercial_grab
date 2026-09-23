@@ -14,6 +14,7 @@ python3 -m commercial_grab transcribe RECORDING   # GPU; run concurrently with s
 python3 -m commercial_grab captions   RECORDING   # Line 21 CC — run it; it's cheap
 python3 -m commercial_grab propose    RECORDING
 # >>> YOUR REVIEW PASS (below) <<<
+python3 -m commercial_grab refit      RECORDING   # ALWAYS after review, before cut — snaps boundaries to real cuts
 python3 -m commercial_grab cut        RECORDING --precise
 python3 -m commercial_grab dedupe     RECORDING.grab --archive ~/Videos/commercials --apply
 python3 -m commercial_grab index      ~/Videos/commercials   # after filing clips — keeps the archive memory current
